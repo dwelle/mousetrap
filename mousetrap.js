@@ -602,6 +602,22 @@
                 return;
             }
 
+            if ( Mousetrap.onBefore ) {
+
+              var data = self._directMap[combo + ':' + e.type];
+              var opts = data && data.opts;
+
+              var ret = Mousetrap.onBefore({
+                e: e,
+                sequence: sequence,
+                opts: opts,
+                key: combo,
+                elem: e.target || e.srcElement
+              });
+
+              if ( ret === false ) return;
+            }
+
             if (callback(e, combo) === false) {
                 _preventDefault(e);
                 _stopPropagation(e);
@@ -817,10 +833,15 @@
          * @param {number=} level - what part of the sequence the command is
          * @returns void
          */
-        function _bindSingle(combination, callback, action, sequenceName, level) {
+        function _bindSingle(combination, callback, action, sequenceName, level, opts) {
+
+            action = action || 'keydown';
 
             // store a direct mapped reference for use with Mousetrap.trigger
-            self._directMap[combination + ':' + action] = callback;
+            self._directMap[combination + ':' + action] = {
+                callback: callback,
+                opts    : opts
+            };
 
             // make sure multiple spaces in a row become a single space
             combination = combination.replace(/\s+/g, ' ');
@@ -868,9 +889,9 @@
          * @param {string|undefined} action
          * @returns void
          */
-        self._bindMultiple = function(combinations, callback, action) {
+        self._bindMultiple = function(combinations, callback, action, opts) {
             for (var i = 0; i < combinations.length; ++i) {
-                _bindSingle(combinations[i], callback, action);
+                _bindSingle(combinations[i], callback, action, undefined, undefined, opts);
             }
         };
 
@@ -894,10 +915,10 @@
      * @param {string=} action - 'keypress', 'keydown', or 'keyup'
      * @returns void
      */
-    Mousetrap.prototype.bind = function(keys, callback, action) {
+    Mousetrap.prototype.bind = function(keys, callback, action, opts) {
         var self = this;
         keys = keys instanceof Array ? keys : [keys];
-        self._bindMultiple.call(self, keys, callback, action);
+        self._bindMultiple.call(self, keys, callback, action, opts);
         return self;
     };
 
@@ -933,7 +954,7 @@
     Mousetrap.prototype.trigger = function(keys, action) {
         var self = this;
         if (self._directMap[keys + ':' + action]) {
-            self._directMap[keys + ':' + action]({}, keys);
+            self._directMap[keys + ':' + action].callback({}, keys);
         }
         return self;
     };
@@ -979,6 +1000,7 @@
      * exposes _handleKey publicly so it can be overwritten by extensions
      */
     Mousetrap.prototype.handleKey = function() {
+
         var self = this;
         return self._handleKey.apply(self, arguments);
     };
@@ -991,6 +1013,9 @@
      */
     Mousetrap.init = function() {
         var documentMousetrap = Mousetrap(document);
+
+        Mousetrap.documentMousetrap = documentMousetrap;
+
         for (var method in documentMousetrap) {
             if (method.charAt(0) !== '_') {
                 Mousetrap[method] = (function(method) {
@@ -1001,8 +1026,6 @@
             }
         }
     };
-
-    Mousetrap.init();
 
     // expose mousetrap to the global object
     window.Mousetrap = Mousetrap;

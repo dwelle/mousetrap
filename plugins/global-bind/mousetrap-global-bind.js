@@ -25,9 +25,9 @@
         return _originalStopCallback.call(self, e, element, combo);
     };
 
-    Mousetrap.prototype.bindGlobal = function(keys, callback, action) {
+    Mousetrap.prototype.bindGlobal = function(keys, callback, action, opts) {
         var self = this;
-        self.bind(keys, callback, action);
+        self.bind(keys, callback, action, opts);
 
         if (keys instanceof Array) {
             for (var i = 0; i < keys.length; i++) {
@@ -39,5 +39,4 @@
         _globalCallbacks[keys] = true;
     };
 
-    Mousetrap.init();
 }) (Mousetrap);
